@@ -1,0 +1,174 @@
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" type="text/css" href="styles.css" />
+</head>
+<div id="collisionExhibit" class="hidden">
+  <header class="cx-header">
+    <div>
+      <h2>Collision Telemetry Exhibit</h2>
+      <p class="cx-sub">Reconstructs an incident second-by-second from the GO device's own records and produces the GPSFMS branded exhibit. Neutral on fault; documents what the data does and does not show.</p>
+    </div>
+    <div class="cx-brand">GPS<span>FMS</span></div>
+  </header>
+
+  <!-- 1. Case setup -->
+  <section class="cx-card">
+    <h3 class="cx-h3">1 · Case</h3>
+    <div class="cx-form">
+      <div class="cx-field cx-grow">
+        <label for="cx-device-filter">Vehicle</label>
+        <input id="cx-device-filter" type="text" placeholder="Type to filter…" autocomplete="off">
+        <select id="cx-device" size="1"><option value="">Loading vehicles…</option></select>
+      </div>
+      <div class="cx-field">
+        <label for="cx-event-date">Event date</label>
+        <input id="cx-event-date" type="date">
+      </div>
+      <div class="cx-field">
+        <label for="cx-event-time">Event time (local)</label>
+        <input id="cx-event-time" type="time" step="1">
+      </div>
+      <div class="cx-field">
+        <label for="cx-tz">Time zone</label>
+        <select id="cx-tz"></select>
+      </div>
+      <div class="cx-field cx-narrow">
+        <label for="cx-before">Window before (min)</label>
+        <input id="cx-before" type="number" min="5" max="720" value="60">
+      </div>
+      <div class="cx-field cx-narrow">
+        <label for="cx-after">Window after (min)</label>
+        <input id="cx-after" type="number" min="5" max="1440" value="120">
+      </div>
+      <div class="cx-field">
+        <label for="cx-client">Client</label>
+        <input id="cx-client" type="text" placeholder="Company name">
+      </div>
+      <div class="cx-actions">
+        <button id="cx-load" type="button" class="cx-btn cx-btn-primary">Load telemetry</button>
+        <button id="cx-import-xlsx" type="button" class="cx-btn" title="Fallback: analyse an Advanced Log Data &amp; Collisions export instead of the API">Import export (.xlsx)</button>
+        <input id="cx-xlsx-file" type="file" accept=".xlsx" style="display:none">
+        <button id="cx-load-case" type="button" class="cx-btn">Open saved case…</button>
+        <input id="cx-case-file" type="file" accept=".json" style="display:none">
+      </div>
+    </div>
+    <div id="cx-error" class="cx-error" style="display:none"></div>
+    <div id="cx-loading" class="cx-loading" style="display:none"></div>
+    <div id="cx-status" class="cx-chips" style="display:none"></div>
+  </section>
+
+  <div id="cx-work" style="display:none">
+    <!-- 2. Case details (feed analysis + exhibit) -->
+    <section class="cx-card">
+      <h3 class="cx-h3">2 · Case details</h3>
+      <div class="cx-grid2">
+        <div class="cx-field"><label for="cx-vehicle-desc">Vehicle description</label><input id="cx-vehicle-desc" type="text" placeholder="2020 Ford F-350"></div>
+        <div class="cx-field"><label for="cx-driver">Driver (as established)</label><input id="cx-driver" type="text" placeholder="From Geotab Drive pairing / dispatch"></div>
+        <div class="cx-field"><label for="cx-location-label">Location label</label><input id="cx-location-label" type="text" placeholder="Farmington Ave SE at Co Rd 33, Buffalo, MN"></div>
+        <div class="cx-field"><label for="cx-conditions">Conditions</label><input id="cx-conditions" type="text" placeholder="Dense fog documented in the 09:18 AM scene photograph"></div>
+        <div class="cx-field cx-span2"><label for="cx-reported">Reported event (claim narrative / scene evidence)</label><textarea id="cx-reported" rows="2" placeholder="Front of the F-350 struck the side of a third-party vehicle (T-bone), per scene evidence; third party not visible to this vehicle's telemetry"></textarea></div>
+        <div class="cx-field"><label for="cx-impact-config">Impact configuration (scene evidence)</label>
+          <select id="cx-impact-config"><option value="">— not established —</option><option value="frontal">Frontal</option><option value="driver-side">Driver side</option><option value="passenger-side">Passenger side</option><option value="rear">Rear</option><option value="rollover">Rollover</option><option value="undercarriage/terrain">Undercarriage / terrain</option></select></div>
+        <div class="cx-field"><label for="cx-pulse-threshold">Pulse threshold (g)</label><input id="cx-pulse-threshold" type="number" step="0.1" min="0.2" max="3" value="0.5"></div>
+      </div>
+
+      <details class="cx-details" id="cx-recon-details">
+        <summary>Geotab Collision Reconstruction (BETA) values — enter from the recon PDF when one was generated</summary>
+        <div class="cx-grid3">
+          <div class="cx-field"><label for="cx-recon-time">Time of collision (trigger, local, HH:MM:SS)</label><input id="cx-recon-time" type="time" step="1"></div>
+          <div class="cx-field"><label for="cx-recon-fwd">Forward and braking (ft/s²)</label><input id="cx-recon-fwd" type="number" step="0.00001" placeholder="-7.43220"></div>
+          <div class="cx-field"><label for="cx-recon-lat">Side to side (ft/s²)</label><input id="cx-recon-lat" type="number" step="0.00001" placeholder="-71.84465"></div>
+          <div class="cx-field"><label for="cx-recon-speed">Speed at moment of collision (mph)</label><input id="cx-recon-speed" type="number" step="0.001"></div>
+          <div class="cx-field"><label for="cx-recon-gps">GPS accuracy (ft)</label><input id="cx-recon-gps" type="number" step="0.1" value="8.2"></div>
+          <div class="cx-field"><label for="cx-recon-spd-acc">Speed accuracy (mph)</label><input id="cx-recon-spd-acc" type="number" step="0.1" value="2.2"></div>
+          <div class="cx-field"><label for="cx-recon-depicts">Point of impact depicted</label>
+            <select id="cx-recon-depicts"><option value="">— n/a —</option><option value="frontal">Frontal</option><option value="driver-side">Driver side</option><option value="passenger-side">Passenger side</option><option value="rear">Rear</option></select></div>
+          <div class="cx-field cx-span2"><label for="cx-recon-img">Point-of-impact graphic (screenshot of the recon figure, optional)</label><input id="cx-recon-img" type="file" accept="image/*"><div id="cx-recon-img-preview" class="cx-thumbs"></div></div>
+        </div>
+      </details>
+
+      <details class="cx-details" open>
+        <summary>Scene photographs &amp; independent position anchors</summary>
+        <div class="cx-field"><label for="cx-photos">Add photos (Timemark-stamped photos: enter their GPS stamp to plot as anchors)</label><input id="cx-photos" type="file" accept="image/*" multiple></div>
+        <div id="cx-photo-list" class="cx-photo-list"></div>
+      </details>
+
+      <details class="cx-details">
+        <summary>Map image override (only if the satellite capture fails or a MyGeotab Trips History screenshot is preferred)</summary>
+        <div class="cx-field"><input id="cx-map-override" type="file" accept="image/*"><div id="cx-map-override-preview" class="cx-thumbs"></div><small>When set, this image replaces the generated satellite figure in the exhibit; markers are not drawn on it.</small></div>
+      </details>
+
+      <div class="cx-actions cx-right"><button id="cx-analyze" type="button" class="cx-btn cx-btn-primary">Re-run analysis</button></div>
+    </section>
+
+    <!-- 3. Analysis -->
+    <section class="cx-card">
+      <h3 class="cx-h3">3 · Analysis</h3>
+      <div id="cx-warnings" class="cx-warn" style="display:none"></div>
+      <div id="cx-keyfacts" class="cx-keyfacts"></div>
+
+      <h4 class="cx-h4">Collision site — satellite</h4>
+      <div class="cx-map-tools">
+        <label><input type="checkbox" id="cx-map-labels" checked> Place labels</label>
+        <label><input type="checkbox" id="cx-map-trail" checked> Full trip trail</label>
+        <label><input type="checkbox" id="cx-map-crumbs" checked> 1 Hz breadcrumbs</label>
+        <button id="cx-map-fit" type="button" class="cx-btn cx-btn-sm">Fit to event</button>
+        <span class="cx-muted">Pan/zoom to frame the figure; the exhibit captures this exact view.</span>
+      </div>
+      <div id="cx-map" class="cx-map"></div>
+
+      <h4 class="cx-h4">Camera footage — Geotab-native cameras <span class="cx-muted">(GO Focus / Surfsight via media-services; VisionTrack cameras: use the VisionTrack add-in)</span></h4>
+      <div id="cx-cam-status" class="cx-muted">Checking for a paired camera…</div>
+      <div id="cx-cam-tools" class="cx-map-tools" style="display:none">
+        <button id="cx-cam-find" type="button" class="cx-btn cx-btn-sm">Find existing footage in window</button>
+        <label>Clip around pulse: −<input id="cx-cam-pre" type="number" value="10" min="1" max="120" style="width:52px"> s / +<input id="cx-cam-post" type="number" value="10" min="1" max="120" style="width:52px"> s</label>
+        <button id="cx-cam-request" type="button" class="cx-btn cx-btn-sm cx-btn-primary">Request clip from camera</button>
+        <span id="cx-cam-busy" class="cx-muted"></span>
+      </div>
+      <div id="cx-cam-exceptions" class="cx-cam-exc"></div>
+      <div id="cx-cam-list" class="cx-cam-list"></div>
+      <details class="cx-details" id="cx-cam-raw-details"><summary>media-services call log (raw JSON — for the first live run)</summary><pre id="cx-cam-raw" class="cx-pre"></pre></details>
+
+      <h4 class="cx-h4">Impact pulse — accelerometer capture</h4>
+      <div class="cx-chart-wrap"><canvas id="cx-chart-pulse" height="300"></canvas></div>
+      <h4 class="cx-h4">Speed profile — final approach</h4>
+      <div class="cx-chart-wrap"><canvas id="cx-chart-speed" height="260"></canvas></div>
+
+      <h4 class="cx-h4">Event timeline <span class="cx-muted">(edit text freely; times are logged values)</span></h4>
+      <table class="cx-table" id="cx-timeline"><thead><tr><th style="width:120px">Time</th><th>Entry</th><th style="width:40px"></th></tr></thead><tbody></tbody></table>
+      <div class="cx-actions"><button id="cx-timeline-add" type="button" class="cx-btn cx-btn-sm">Add row</button><button id="cx-timeline-reset" type="button" class="cx-btn cx-btn-sm">Reset to computed</button></div>
+
+      <h4 class="cx-h4">Device event log summary</h4>
+      <table class="cx-table" id="cx-summary"><thead><tr><th style="width:220px">Metric</th><th>Recorded value</th></tr></thead><tbody></tbody></table>
+      <div class="cx-actions"><button id="cx-summary-reset" type="button" class="cx-btn cx-btn-sm">Reset to computed</button></div>
+
+      <h4 class="cx-h4">Narrative</h4>
+      <div class="cx-field"><label for="cx-text-discrepancy">Point-of-impact discrepancy — reconstruction vs. physical evidence (leave empty to omit the section)</label><textarea id="cx-text-discrepancy" rows="6"></textarea></div>
+      <div class="cx-field"><label for="cx-text-pulse-caption">Impact pulse caption</label><textarea id="cx-text-pulse-caption" rows="3"></textarea></div>
+      <div class="cx-field"><label for="cx-text-speed-caption">Speed profile caption</label><textarea id="cx-text-speed-caption" rows="2"></textarea></div>
+      <div class="cx-field"><label for="cx-text-map-caption">Map caption</label><textarea id="cx-text-map-caption" rows="3"></textarea></div>
+      <div class="cx-field"><label for="cx-text-source">Source &amp; limitations paragraph</label><textarea id="cx-text-source" rows="5"></textarea></div>
+    </section>
+
+    <!-- 4. Export -->
+    <section class="cx-card">
+      <h3 class="cx-h3">4 · Export</h3>
+      <div class="cx-actions">
+        <button id="cx-open-exhibit" type="button" class="cx-btn cx-btn-primary">Open exhibit (print → Save as PDF)</button>
+        <button id="cx-save-case" type="button" class="cx-btn">Save case (.json)</button>
+        <button id="cx-export-csv" type="button" class="cx-btn">Forensic buffer (.csv)</button>
+        <button id="cx-export-html" type="button" class="cx-btn">Exhibit (.html)</button>
+      </div>
+      <p class="cx-muted">The saved case file holds the normalized telemetry, your inputs and edits, and the computed analysis — reopen it here to continue, or hand it to an analyst for a written deep-dive.</p>
+    </section>
+  </div>
+
+  <footer class="cx-footer"><small>Data: <code>LogRecord</code>, <code>StatusData</code> (accelerometer, engine, ignition), <code>FaultData</code>, <code>DebugData</code>, <code>Trip</code>, <code>DriverChange</code>, <code>ExceptionEvent</code> via the MyGeotab API. Times rendered in the selected zone. Satellite tiles: Esri World Imagery.</small></footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="analysis.js"></script>
+<script src="camera.js"></script>
+<script src="exhibit.js"></script>
+<script src="collisionExhibit.js"></script>

@@ -1,0 +1,13 @@
+{
+  "name": "Collision Telemetry Exhibit",
+  "supportEmail": "support@gpsfms.com",
+  "version": "0.1.0",
+  "items": [
+    {
+      "url": "https://cdn.jsdelivr.net/gh/Austin-GPSFMS/collision-exhibit-addin@main/collisionExhibit.standalone.html",
+      "path": "ActivityLink/",
+      "menuName": { "en": "Collision Telemetry Exhibit" }
+    }
+  ],
+  "isSigned": false
+}
