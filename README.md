@@ -19,16 +19,14 @@ Status: **v0.1.0 — validated against the 20-V73 F350 (Arvig, 2026-09-30) case;
 
 | File | Purpose |
 |---|---|
-| `config.json` | Dev manifest (relative file paths; use with a local server or MyGeotab's file upload) |
-| `config.hosted.json` | Production manifest pointing at the jsDelivr-hosted standalone page |
-| `config.packed.json` | Built: upload-and-go manifest with all files base64-inlined |
+| `config.json` | The add-in manifest — points at the GitHub Pages-hosted standalone page; paste into System Settings → Add-Ins |
 | `collisionExhibit.html` / `styles.css` | UI shell |
 | `collisionExhibit.js` | Add-in glue: API fetch + normalization, xlsx import, map, charts, editable tables, export |
 | `analysis.js` | Analysis engine (no DOM/API). `CollisionAnalysis.analyze(bundle, inputs, options)` |
 | `camera.js` | media-services.geotab.com client (pairing lookup, existing requests, exception media, clip request + polling) |
 | `exhibit.template.js` → `exhibit.js` | Exhibit document builder; build step inlines the logo |
 | `collisionExhibit.standalone.html` | Built: single-file page for jsDelivr hosting |
-| `tools/build.py` | Produces `exhibit.js`, the standalone page, and `config.packed.json` |
+| `tools/build.py` | Produces `exhibit.js` and the standalone page |
 | `tools/xlsx_to_records.py` | Converts an Advanced Log export into the engine's bundle format (fixtures / offline) |
 | `test/validate_20v73.mjs` | Node regression: 47 checks against the numbers in the delivered 20-V73 exhibit |
 | `test/run_browser_test.py` | Headless Chromium end-to-end: mock API → UI → exhibit PDF (`test/out/`) |
@@ -36,17 +34,9 @@ Status: **v0.1.0 — validated against the 20-V73 F350 (Arvig, 2026-09-30) case;
 
 ## Install
 
-**Local dev**
+The add-in is hosted from this repo by GitHub Pages (`main`, root). Paste `config.json` into **System Settings → Add-Ins → New Add-In** on each database; the menu item lands under **Activity**.
 
-```bash
-python3 tools/build.py
-python3 -m http.server 8080
-```
-Then System Settings → Add-Ins → New Add-In with `config.json`, URL `http://localhost:8080/collisionExhibit.html`. The menu item lands under **Activity**. (https MyGeotab → http localhost may be blocked as mixed content; use `mkcert` or host on GitHub.)
-
-**Hosted (same pattern as the other GPSFMS add-ins)** — push this folder to `github.com/Austin-GPSFMS/collision-exhibit-addin` and use `config.hosted.json` (jsDelivr URL `…@main/collisionExhibit.standalone.html`). Rebuild the standalone page after every change.
-
-**Packed** — upload `config.packed.json`; no external hosting needed. Leaflet, Chart.js and SheetJS still load from cdnjs.
+Development loop: edit → `python3 tools/build.py` → commit → push → wait ~1 min for Pages → reload MyGeotab with the browser cache disabled. Pages caches for ~10 minutes and honours a cache-disabled reload. `collisionExhibit.standalone.html` is the file Pages serves, so always rebuild before committing. (A localhost dev server is not useful here: media-services calls need the MyGeotab origin.)
 
 ## Workflow
 

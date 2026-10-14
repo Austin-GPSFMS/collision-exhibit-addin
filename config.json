@@ -4,18 +4,10 @@
   "version": "0.1.0",
   "items": [
     {
-      "url": "collisionExhibit.html",
+      "url": "https://austin-gpsfms.github.io/collision-exhibit-addin/collisionExhibit.standalone.html",
       "path": "ActivityLink/",
       "menuName": { "en": "Collision Telemetry Exhibit" }
     }
   ],
-  "isSigned": false,
-  "files": {
-    "collisionExhibit.html": { "path": "/" },
-    "collisionExhibit.js": { "path": "/" },
-    "analysis.js": { "path": "/" },
-    "camera.js": { "path": "/" },
-    "exhibit.js": { "path": "/" },
-    "styles.css": { "path": "/" }
-  }
+  "isSigned": false
 }
