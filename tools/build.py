@@ -24,7 +24,12 @@ standalone = html.replace('<link rel="stylesheet" type="text/css" href="styles.c
 standalone = re.sub(r'<script src="(analysis|camera|exhibit|collisionExhibit)\.js"></script>\n?', '', standalone)
 standalone = standalone.replace('</div>\n<script src="https://cdnjs', '</div>\n<script src="https://cdnjs', 1)
 # append the inlined JS after the CDN script tags
-standalone = standalone.rstrip() + '\n<script>\n' + js.replace('</script>', '<\\/script>') + '\n</script>\n'
+# MyGeotab's add-in loader pattern-matches document-level tags in the fetched page; any literal
+# <html>/<head>/<body>/<style>/<script>/<title> inside the inlined JS would be taken for page markup.
+forbidden = re.findall(r'</?\s*(?:html|head|body|style|script|title)\b', js, flags=re.I)
+if forbidden:
+    raise SystemExit('refusing to build: inlined JS contains document-level tags %s — hex-escape them (e.g. <\\x62ody>)' % sorted(set(forbidden)))
+standalone = standalone.rstrip() + '\n<script>\n' + js + '\n</script>\n'
 standalone = '<!DOCTYPE html>\n<html>\n' + standalone.replace('<head>', '<head>\n  <meta charset="utf-8">\n  <meta name="viewport" content="width=device-width,initial-scale=1">\n  <title>Collision Telemetry Exhibit</title>', 1) + '</html>\n'
 open('collisionExhibit.standalone.html', 'w', encoding='utf-8').write(standalone)
 

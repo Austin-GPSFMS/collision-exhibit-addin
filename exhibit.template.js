@@ -64,7 +64,10 @@
     var r = m.result, H = r.header, F = r.format, t = m.texts || {}, inp = m.inputs || {};
     var tzLine = 'Prepared from unaltered MyGeotab system records. Times shown in local ' + r.tzLong + ' (' + r.timeZone + ').';
     var out = [];
-    out.push('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Collision Telemetry Exhibit — ' + esc(m.bundle.meta.deviceName) + ' — ' + esc(F.iso(r.eventTime).slice(0, 10)) + '</title><style>' + CSS + '</style></head><body>');
+    // Document-level tag names are hex-escaped: MyGeotab's add-in loader pattern-matches
+    // document-level tags (html, head, body, style) in the fetched page, and literal tags inside this
+    // script would be mistaken for the add-in page itself. '\x62ody' === 'body' at runtime.
+    out.push('<!DOCTYPE \x68tml><\x68tml><\x68ead><meta charset="utf-8"><\x74itle>Collision Telemetry Exhibit — ' + esc(m.bundle.meta.deviceName) + ' — ' + esc(F.iso(r.eventTime).slice(0, 10)) + '</\x74itle><\x73tyle>' + CSS + '</\x73tyle></\x68ead><\x62ody>');
     out.push('<div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button><button class="secondary" onclick="window.close()">Close</button></div>');
     out.push('<div class="page"><table class="pagewrap"><tbody><tr><td>');
     out.push('<div class="titlebar"><h1>Collision Telemetry Exhibit</h1><img src="' + a.logo + '" alt="GPS Fleet Management Solutions"></div>');
@@ -128,7 +131,7 @@
         r.appendix.map(function (x) { return '<tr><td>' + esc(x.clock) + '</td><td>' + (x.mph != null ? x.mph.toFixed(1) : '') + '</td><td>' + x.lat.toFixed(5) + '</td><td>' + x.lon.toFixed(5) + '</td><td>' + esc(x.note) + '</td></tr>'; }).join('') + '</table>');
     }
     out.push('<p class="cap">' + esc(t.source) + '</p>');
-    out.push('</td></tr></tbody><tfoot><tr><td><div class="footer">' + esc(COMPANY) + '<br>' + esc(tzLine) + '</div></td></tr></tfoot></table></div></body></html>');
+    out.push('</td></tr></tbody><tfoot><tr><td><div class="footer">' + esc(COMPANY) + '<br>' + esc(tzLine) + '</div></td></tr></tfoot></table></div></\x62ody></\x68tml>');
     return out.join('\n');
   }
 
